@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, platform, shutil, sys, subprocess
+import os, platform, shutil, sys, subprocess, glob
 from distutils.command.bdist import bdist as _bdist
 from distutils.command.sdist import sdist as _sdist
 from distutils.command.build import build as _build
@@ -20,6 +20,50 @@ output_dir = target_dir + ("/debug" if debug else "/release")
 build_dir = py_target_dir + "/build"
 dist_dir = py_target_dir + "/dist"
 
+def build_tests():
+    with open('python/dqcsim_cqasm/test.py', 'w') as f:
+        f.write("""
+# GENERATED FILE!
+
+import unittest
+from dqcsim.plugin import *
+from dqcsim.host import *
+import tempfile
+import os
+
+class Tests(unittest.TestCase):
+    _indentation_error = None
+    """)
+
+        for filename in glob.glob('tests/valid/**/*.qasm', recursive=True):
+            name = '_'.join(filename.split(os.sep)[2:]).split('.')[0].replace('-', '_')
+            with open(filename, 'r') as fc:
+                cqasm = fc.read()
+            f.write("""
+    def test_{name}(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = tmpdir + os.sep + 'test_{name}.cq'
+            with open(fname, 'w') as f:
+                f.write({cqasm})
+            with Simulator(fname, 'null') as sim:
+                sim.run()
+            """.format(name=name, cqasm=repr(cqasm)))
+
+        for filename in glob.glob('tests/invalid/**/*.qasm', recursive=True):
+            name = '_'.join(filename.split(os.sep)[2:]).split('.')[0].replace('-', '_')
+            with open(filename, 'r') as fc:
+                cqasm = fc.read()
+            f.write("""
+    def test_{name}(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = tmpdir + os.sep + 'test_{name}.cq'
+            with open(fname, 'w') as f:
+                f.write({cqasm})
+            with self.assertRaises(RuntimeError):
+                with Simulator(fname, 'null') as sim:
+                    sim.run()
+            """.format(name=name, cqasm=repr(cqasm)))
+
 def read(fname):
     with open(os.path.join(os.path.dirname(__file__), fname)) as f:
         return f.read()
@@ -36,7 +80,7 @@ class build(_build):
 
     def run(self):
         from plumbum import local, FG
-
+        build_tests()
         local['mkdir']("-p", output_dir)
         if platform.system() == "Darwin":
             # brew install flex bison
