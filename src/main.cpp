@@ -420,7 +420,7 @@ public:
     // Allocate qubits, bits, and measurements.
     qubits = state.allocate(cqasm.numQubits()).drain_into_vector();
     for (auto i = 0; i < cqasm.numQubits(); i++) {
-      bits.emplace_back(false);
+      bits.push_back(false);
       measurements.emplace_back();
     }
 
