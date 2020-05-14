@@ -508,7 +508,7 @@ int main(int argc, char *argv[]) {
 
   // Run the plugin.
   CQASMPlugin cQASMPlugin(std::move(filename));
-  return dqcs::Plugin::Frontend("cQASM", "JvS", "0.0.1")
+  return dqcs::Plugin::Frontend("cQASM", "JvS", "0.0.2")
     .with_run(&cQASMPlugin, &CQASMPlugin::run)
     .run(argc, argv);
 

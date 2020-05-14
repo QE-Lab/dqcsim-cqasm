@@ -124,7 +124,7 @@ class egg_info(_egg_info):
 
 setup(
     name = 'dqcsim-cqasm',
-    version = '0.0.1',
+    version = '0.0.2',
 
     author = 'Quantum Computer Architectures, Quantum & Computer Engineering, QuTech, Delft University of Technology',
     author_email = '',
