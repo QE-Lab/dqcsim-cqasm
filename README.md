@@ -91,5 +91,5 @@ DQCsim's qubit numbering starts at one, so the cQASM frontend adds 1 to the
 zero-referenced cQASM qubit indices to convert.
 
 There is currently no way to attach arbs to gates or to the qubits themselves.
-If you need to do this, you can write an operator and insert it immediatel
+If you need to do this, you can write an operator and insert it immediately
 behind the cQASM frontend.
