@@ -498,7 +498,7 @@ public:
 
 int main(int argc, char *argv[]) {
 
-//   // Pop the first argument, which is the path to the cQASM file.
+  // Pop the first argument, which is the path to the cQASM file.
   if (argc != 3) {
     std::cerr << "Expected two command-line arguments. Apply this plugin to a .cq file!" << std::endl;
   }
