@@ -58,7 +58,7 @@ to the terminal by means of printing the most recent measurement state. The
 frontend also outputs the measurement register contents at the end of the
 program as the ArbData returned by the `run()` call, in the following format:
 
-```json
+```
 {
     "qubits": [
         {  /* data for qubit 0 */
