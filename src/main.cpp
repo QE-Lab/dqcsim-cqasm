@@ -5,6 +5,7 @@
 #include <ios>
 #include <dqcsim>
 #include "qasm_semantic.hpp"
+#include "json.hpp"
 
 // Alias the relevant namespaces to something shorter.
 namespace dqcs = dqcsim::wrap;
@@ -18,13 +19,15 @@ private:
   uint64_t num_total = 0;
   uint64_t num_one = 0;
   bool latest_value = false;
+  nlohmann::json latest_data = "{}"_json;
 
 public:
   /**
    * Adds a measurement sample.
    */
-  void add(bool value) {
+  void add(bool value, nlohmann::json &&data) {
     latest_value = value;
+    latest_data = std::move(data);
     num_total++;
     if (value) num_one++;
   }
@@ -52,6 +55,13 @@ public:
    */
   bool latest() const {
     return latest_value;
+  }
+
+  /**
+   * Returns the extended JSON representation of the latest measurement.
+   */
+  nlohmann::json latest_json() const {
+    return latest_data;
   }
 
   /**
@@ -194,16 +204,28 @@ public:
       // Read back the measurement results.
       for (auto qubit_idx : qubit_idxs) {
         bool value = false;
-        switch (state.get_measurement(qubits[qubit_idx]).get_value()) {
-          case dqcs::MeasurementValue::Zero: value = false; break;
-          case dqcs::MeasurementValue::One: value = true; break;
+        nlohmann::json data = "{}"_json;
+        auto measurement = state.get_measurement(qubits[qubit_idx]);
+        auto raw = measurement.get_value();
+        switch (raw) {
+          case dqcs::MeasurementValue::Zero: value = false; data["raw"] = 0; break;
+          case dqcs::MeasurementValue::One: value = true; data["raw"] = 1; break;
           case dqcs::MeasurementValue::Undefined:
             DQCSIM_WARN("Received undefined measurement for qubit %d, interpreting as 0", qubit_idx);
+            data["raw"] = "null"_json;
             value = false;
             break;
         }
+        data["json"] = measurement.get_arb_json<nlohmann::json>();
+        auto binary_strings = "[]"_json;
+        for (ssize_t i = 0; i < measurement.get_arb_arg_count(); i++) {
+          auto str = measurement.get_arb_arg_string(i);
+          std::vector<uint8_t> bytes(str.begin(), str.end());
+          binary_strings.push_back(nlohmann::json(std::move(bytes)));
+        }
+        data["binary"] = std::move(binary_strings);
         bits[qubit_idx] = value;
-        measurements[qubit_idx].add(value);
+        measurements[qubit_idx].add(value, std::move(data));
       }
       return true;
     }
@@ -450,6 +472,17 @@ public:
       }
     }
 
+    // Construct the JSON return value.
+    auto retval = "{\"qubits\": []}"_json;
+    for (size_t i = 0; i < measurements.size(); i++) {
+      nlohmann::json qubit = measurements[i].latest_json();
+      qubit["value"] = (int)bits[i];
+      if (measurements[i].num_samples()) {
+        qubit["average"] = measurements[i].p1();
+      }
+      retval["qubits"].push_back(qubit);
+    }
+
     // Free the downstream qubits when we're done, so we don't leak anything.
     for (auto qubit : qubits) {
       state.free(qubit);
@@ -458,14 +491,14 @@ public:
     bits.clear();
     measurements.clear();
 
-    return args;
+    return dqcs::ArbData().with_json(retval);
   }
 
 };
 
 int main(int argc, char *argv[]) {
 
-  // Pop the first argument, which is the path to the cQASM file.
+//   // Pop the first argument, which is the path to the cQASM file.
   if (argc != 3) {
     std::cerr << "Expected two command-line arguments. Apply this plugin to a .cq file!" << std::endl;
   }
