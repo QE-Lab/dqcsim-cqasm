@@ -1,10 +1,14 @@
 
-# The CMakeLists of libqasm only output a shared library. That's a bit of a
-# pain to distribute, not to mention it's named very generically. So we
-# basically copypaste its CMakeLists.txt here, but output a static library
-# instead.
+# The CMakeLists of libqasm require SWIG and a recent Python dev version,
+# because the Python build/link steps cannot be turned off. To avoid needing
+# those in the manylinux container we just make our own cmake script as a
+# workaround. If it weren't for that, the following would also work (from the
+# root cmakelists.txt, instead of including this):
+#
+# add_subdirectory(libqasm/src/library)
+# target_include_directories(lexgramstatic PUBLIC libqasm/src/library)
 
-set(LIBQASM_SRC ${PROJECT_SOURCE_DIR}/libqasm/qasm_flex_bison/library)
+set(LIBQASM_SRC ${PROJECT_SOURCE_DIR}/libqasm/src/library)
 
 find_package(BISON 3.0)
 find_package(FLEX 2.6)

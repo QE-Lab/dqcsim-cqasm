@@ -281,7 +281,15 @@ public:
     }
 
     // Handle delay.
-    if (type == "wait") {
+    if (type == "wait" || type == "skip") {
+      if (type == "wait") {
+        static bool warned = false;
+        if (!warned) {
+          DQCSIM_WARN("wait N instruction interpreted as skip N, because instruction timing is unknown");
+          DQCSIM_WARN("(see https://github.com/QE-Lab/libqasm/pull/104 for more info)");
+          warned = true;
+        }
+      }
       state.advance(operation.getWaitTime());
 
       // Pretend that this operation doesn't take time; we've already advanced
@@ -508,7 +516,7 @@ int main(int argc, char *argv[]) {
 
   // Run the plugin.
   CQASMPlugin cQASMPlugin(std::move(filename));
-  return dqcs::Plugin::Frontend("cQASM", "JvS", "0.0.2")
+  return dqcs::Plugin::Frontend("cQASM", "JvS", "0.0.3")
     .with_run(&cQASMPlugin, &CQASMPlugin::run)
     .run(argc, argv);
 
